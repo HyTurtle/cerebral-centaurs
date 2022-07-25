@@ -43,7 +43,7 @@ poetry run uvicorn codejam.run:app --reload
 
 Start the clients in separate windows
 ```bash
-poetry run python codejam/client.py
+poetry run python codejam/client/client.py
 ```
 
 ## Tools brief summary
