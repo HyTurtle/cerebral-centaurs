@@ -8,9 +8,18 @@ class LineData(BaseModel):
 
     line: List[float]
     colour: List[Union[float, int]]
+    width: int
+
+
+class RectData(BaseModel):
+    """Interface to exchange rectangle information"""
+
+    pos: List[Union[float, int]]
+    colour: List[Union[float, int]]
+    size: List[Union[float, int]]
 
 
 class PictureMessage(BaseModel):
     """Interface to exchange drawable information between clients"""
 
-    data: LineData
+    data: LineData | RectData
