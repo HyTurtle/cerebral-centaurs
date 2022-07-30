@@ -11,6 +11,7 @@ class TopicEnum(Enum):
     DRAW = "DRAW"
     CHAT = "CHAT"
     ERROR = "ERROR"
+    TRICK = "TRICK"
 
 
 class GameOperations(Enum):
@@ -20,6 +21,10 @@ class GameOperations(Enum):
     JOIN = "JOIN"
     LEAVE = "LEAVE"
     END = "END"
+    START = "START"
+    TURN = "TURN"
+    WIN = "WIN"
+    MEMBERS = "MEMBERS"
 
 
 class DrawOperations(Enum):
@@ -27,6 +32,7 @@ class DrawOperations(Enum):
 
     LINE = "LINE"
     RECT = "RECT"
+    FRAME = "FRAME"
 
 
 class ChatOperations(Enum):
@@ -41,11 +47,23 @@ class ErrorOperations(Enum):
     BROADCAST = "BROADCAST"
 
 
+class TrickOperations(Enum):
+    """Available tricks operations."""
+
+    NOTHING = "NOTHING"
+    SNAIL = "SNAIL"
+    PACMAN = "PACMAN"
+    EARTHQUAKE = "EARTHQUAKE"
+    LANDSLIDE = "LANDSLIDE"
+
+
 class Topic(BaseModel):
     """Message's Topic consisting of type and operation."""
 
     type: TopicEnum
-    operation: Union[GameOperations, DrawOperations, ChatOperations, ErrorOperations]
+    operation: Union[
+        GameOperations, DrawOperations, ChatOperations, ErrorOperations, TrickOperations
+    ]
 
     class Config:
         use_enum_values = True
@@ -58,6 +76,7 @@ class Topic(BaseModel):
             TopicEnum.DRAW.value: DrawOperations,
             TopicEnum.CHAT.value: ChatOperations,
             TopicEnum.ERROR.value: ErrorOperations,
+            TopicEnum.TRICK.value: TrickOperations,
         }
         expected_operations = allowed_operations.get(values.get("type"))
         if not expected_operations or v not in set(x.value for x in expected_operations):
