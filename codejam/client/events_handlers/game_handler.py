@@ -1,5 +1,7 @@
 from typing import Callable, Dict
 
+from kivy.animation import Animation
+
 from codejam.client.events_handlers.base_handler import BaseEventHandler
 from codejam.client.events_handlers.utils import display_popup
 from codejam.server.interfaces.message import Message
@@ -22,6 +24,20 @@ class GameEventHandler(BaseEventHandler):
         }
         self.callbacks[TopicEnum.GAME.value] = self.game_callbacks
 
+    def cancel_trick(self):
+        """Cancel current trick if it's applied"""
+        self.cvs.offset_x = self.canvas_initial_offset_x
+        self.cvs.offset_y = self.canvas_initial_offset_y
+        self.cvs.angle = 0
+        self.snail_active = False
+        if self.current_trick:
+            if isinstance(self.current_trick, Animation):
+                self.current_trick.cancel(self.cvs)
+            else:
+                self.current_trick.cancel()
+                if self.pacman_animation:
+                    self.pacman_animation.cancel(self)
+
     def game_create(self, message: Message) -> None:
         """Create game message from other clients"""
         self.manager.game_id = message.value.game_id
@@ -41,6 +57,7 @@ class GameEventHandler(BaseEventHandler):
     def play_turn(self, message: Message):
         """Play a game turn."""
         self.cvs.canvas.clear()
+        self.cancel_trick()
         drawer = message.value.turn.drawer
         client = self.manager.username
         duration = message.value.turn.duration
@@ -68,6 +85,7 @@ class GameEventHandler(BaseEventHandler):
         """Display winner."""
         winner = message.value.turn.winner
         client = self.manager.username
+        self.cancel_trick()
         self.ids.counter.cancel_animation()
         self.ids.score_board.update_score(message=message)
         self.ids.counter.text = "WAITING FOR START"
@@ -84,6 +102,7 @@ class GameEventHandler(BaseEventHandler):
         self.manager.current = "menu_screen"
         self.ids.counter.cancel_animation()
         self.ids.counter.text = "WAITING FOR START"
+        self.cancel_trick()
         score = message.value.turn.score
         max_score = max(score.values())
         winners = [u for u in score if score[u] == max_score]

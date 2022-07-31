@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import pathlib
 from typing import List, Union
 
@@ -13,12 +14,13 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.widget import Widget
 from websockets.exceptions import ConnectionClosedError
 
-from codejam import logger
 from codejam.client.events_handlers import EventHandler
 from codejam.client.events_handlers.utils import display_popup
 from codejam.server.interfaces.game_message import GameMessage
 from codejam.server.interfaces.message import Message
 from codejam.server.interfaces.topics import GameOperations, Topic, TopicEnum
+
+logger = logging.getLogger(__name__)
 
 
 class WhiteBoardScreen(EventHandler):
@@ -31,6 +33,7 @@ class WhiteBoardScreen(EventHandler):
     lobby_widget = ObjectProperty(None)
     layout = ObjectProperty(None)
     message = StringProperty("")
+    second_message = StringProperty("")
 
     def task_callback(self, task: asyncio.Task):
         """Used to handle exceptions inside websocket task."""
@@ -39,6 +42,7 @@ class WhiteBoardScreen(EventHandler):
         except asyncio.CancelledError:
             pass  # Task cancellation should not be treated as an error.
         except ConnectionRefusedError as e:
+            logger.error(e)
             self.reset_websocket()
             display_popup(
                 header="Error encountered!",
@@ -48,6 +52,7 @@ class WhiteBoardScreen(EventHandler):
                 auto_dismiss=False,
             )
         except ConnectionClosedError as e:
+            logger.error(e)
             self.reset_websocket()
             display_popup(
                 header="Connection lost",
@@ -56,7 +61,8 @@ class WhiteBoardScreen(EventHandler):
                 additional_message="Check your server and internet connections.",
                 auto_dismiss=False,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             self.reset_websocket()
             display_popup(
                 header="Unexpected error encountered!",
@@ -73,6 +79,8 @@ class WhiteBoardScreen(EventHandler):
 
     def on_pre_enter(self) -> None:
         """Called when the screen is about to be shown."""
+        self.canvas_initial_offset_x = self.cvs.offset_x
+        self.canvas_initial_offset_y = self.cvs.offset_y
         if not self.manager.ws:
             websocket_task = asyncio.create_task(self.run_websocket())
             websocket_task.add_done_callback(self.task_callback)
@@ -110,7 +118,6 @@ class WhiteBoardScreen(EventHandler):
     top_enter = BooleanProperty(False)
     left_enter = BooleanProperty(False)
     right_enter = BooleanProperty(False)
-    bottom_enter = BooleanProperty(False)
 
     def mouse_pos(self, window: Window, pos: List[Union[int, float]]) -> None:
         """Handle mouse position."""
@@ -120,13 +127,10 @@ class WhiteBoardScreen(EventHandler):
             self.left_enter = True
         elif pos[0] > Window.width * 0.7 and Window.height * 0.2 < pos[1] < Window.height * 0.8:
             self.right_enter = True
-        elif pos[1] < Window.height * 0.2 and Window.width * 0.2 < pos[0] < Window.width * 0.8:
-            self.bottom_enter = True
         else:
             self.top_enter = False
             self.left_enter = False
             self.right_enter = False
-            self.bottom_enter = False
 
     def on_top_enter(self, instance: Widget, value: bool):
         """Handle top enter."""
@@ -161,17 +165,6 @@ class WhiteBoardScreen(EventHandler):
             self.anim = Animation(right_x=0.95, d=0.5)
             self.anim.start(self)
 
-    def on_bottom_enter(self, instance: Widget, value: bool):
-        """Handle bottom enter."""
-        if value:
-            self.anim = Animation(bottom_y=0.2, d=0.5)
-            self.anim.start(self)
-        else:
-            if self.anim:
-                self.anim.stop(self)
-            self.anim = Animation(bottom_y=0, d=0.5)
-            self.anim.start(self)
-
     def start_game(self) -> None:
         """Start game"""
         self.message = self._prepare_message(operation=GameOperations.START).json(
@@ -195,6 +188,10 @@ class WhiteBoardScreen(EventHandler):
             while True:
                 if m := self.message:
                     self.message = ""
+                    logger.debug("sending " + m)
+                    await websocket.send(m)
+                if m := self.second_message:
+                    self.second_message = ""
                     logger.debug("sending " + m)
                     await websocket.send(m)
                 try:

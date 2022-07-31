@@ -1,3 +1,4 @@
+#:import A kivy.animation.Animation
 <CLabel@Label>:
     canvas.before:
         Color:
@@ -29,6 +30,7 @@
     id: wbs
     cvs: canvas
     message: ''
+    second_message: ''
     received: ''
     label_y : 1
     left_x: 0
@@ -51,12 +53,20 @@
         size: 400, 400
         draw_mark: .1, .2, .3
         line_width: 2
+        angle: 0
         canvas.before:
+            PushMatrix
+            Rotate:
+                angle: self.angle
+                axis: 0, 0, 1
+                origin: self.center
             Color:
                 hsv: self.draw_mark or (.1, .2, .3)
             Rectangle:
                 pos: self.x + self.offset_x, self.y + self.offset_y
                 size: self.size
+        canvas.after:
+            PopMatrix
     CLabel:
         id: label
         size_hint_y: .1
@@ -67,11 +77,6 @@
         texture_size: self.size
         halign: 'center'
         text: root.received
-    CanvasTools:
-        size_hint: .6, .2
-        id: tools
-        _canvas: canvas
-        pos_hint: {'top': root.bottom_y, 'center_x': .5}
     Instructions:
         _canvas: canvas
         size_hint: .2, .6
@@ -80,16 +85,18 @@
         id: score_board
         game_id: root.manager.game_id
         pos_hint: {'right':.98, 'top':.98}
-        size_hint: .2, .38
-        opacity: .25 if chat_window.x < self.center_x else 1
+        size_hint: .22, .38
+        screen: root
+        username: root.manager.username
+        opacity: .1 if chat_window.x < self.center_x else 1
     ChatWindow:
         id: chat_window
-        username: root.manager.username
         screen: root
+        username: root.manager.username
         size_hint: .25, .6
         pos_hint: {'x': root.right_x, 'center_y': .5}
         orientation: 'vertical'
-        opacity: .75
+        opacity: .9
     Counter:
         id: counter
         size_hint_y: .1
@@ -158,57 +165,9 @@
                 root._canvas.tool = 'line'
                 root._canvas.colour = root._canvas.draw_mark
 
-<CanvasTools>:
-    padding: dp(5)
-    spacing: dp(5)
-    BoxLayout:
-        spacing: dp(5)
-        orientation: 'vertical'
-        CButton:
-            text: 'inc width'
-            on_release:
-                root._canvas.width += 5
-        CButton:
-            text: 'dec width'
-            on_release:
-                root._canvas.width -= 5
-    BoxLayout:
-        spacing: dp(5)
-        orientation: 'vertical'
-        CButton:
-            text: 'inc height'
-            on_release:
-                root._canvas.height += 10
-        CButton:
-            text: 'dec height'
-            on_release:
-                root._canvas.height -= 10
-    BoxLayout:
-        spacing: dp(5)
-        orientation: 'vertical'
-        CButton:
-            text: 'right'
-            on_release:
-                root._canvas.offset_x += 10
-        CButton:
-            text: 'left'
-            on_release:
-                root._canvas.offset_x -= 10
-    BoxLayout:
-        spacing: dp(5)
-        orientation: 'vertical'
-        CButton:
-            text: 'up'
-            on_release:
-                root._canvas.offset_y += 10
-        CButton:
-            text: 'down'
-            on_release:
-                root._canvas.offset_y -= 10
-
 <InfoPopup>:
     auto_dismiss: False
-    size_hint: 0.6, 0.2
+    size_hint: 0.6, 0.3
     pos_hint: {"x": 0.2 ,"top": 0.9}
     title: "Error Title"
     additional_message: "Error Code"
@@ -226,6 +185,8 @@
                 rectangle: self.x + 2, self.y + 2, self.width - 2, self.height - 2
         Label:
             text: root.header
+            font_size: sp(20)
+            bold: True
         Widget:
             size_hint_y: .1
             canvas:
@@ -243,7 +204,12 @@
         Label:
             text: root.additional_message
             halign: "left"
+        BoxLayout:
+            size_hint_y: .1
         CButton:
+            font_size: sp(20)
+            size_hint: .3, 1.2
+            pos_hint: {'x': .35}
             color: .2, .5, .9
             text: "Close"
             on_release: root.dismiss()
