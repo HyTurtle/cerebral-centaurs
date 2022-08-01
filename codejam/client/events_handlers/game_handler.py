@@ -69,6 +69,7 @@ class GameEventHandler(BaseEventHandler):
         drawing_person = "your" if client == drawer else drawer
         phrase = message.value.turn.phrase if client == drawer else ""
         action = "draw" if client == drawer else "guess"
+        self.current_phrase.text = phrase if client == drawer else ""
         display_popup(
             header="Next turn!",
             title=f"Now is {drawing_person} turn to draw!",
@@ -85,7 +86,9 @@ class GameEventHandler(BaseEventHandler):
         """Display winner."""
         winner = message.value.turn.winner
         client = self.manager.username
+        self.cvs.canvas.clear()
         self.cancel_trick()
+        self.current_phrase.text = ""
         self.ids.counter.cancel_animation()
         self.ids.score_board.update_score(message=message)
         self.ids.counter.text = "WAITING FOR START"
@@ -99,9 +102,13 @@ class GameEventHandler(BaseEventHandler):
 
     def game_end(self, message: Message):
         """Handle game end event."""
+        self.cvs.canvas.clear()
+        self.ids.score_board.current_turn = 0
+        self.ids.score_board.turns_no = 0
         self.manager.current = "menu_screen"
         self.ids.counter.cancel_animation()
         self.ids.counter.text = "WAITING FOR START"
+        self.current_phrase.text = ""
         self.cancel_trick()
         score = message.value.turn.score
         max_score = max(score.values())
